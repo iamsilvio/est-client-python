@@ -106,14 +106,17 @@ def send(method, url, params=None, data=None, headers=None, auth=None,
                 except KeyError:
                     pass
                 return res.content
-            elif res.status_code in (400, 401, 403, 404, 413, 202):
+            if res.status_code == 202:
+                if 'Retry-After' in resp.headers:
+                    retry_after = int(resp.headers['Retry-After'])
+                    time.sleep(retry_after)
+                    retries -= 1
+                    continue
+            elif res.status_code in (400, 401, 403, 404, 413):
                 break
         except (requests.exceptions.RequestException) as exception:
             message = str(exception)
             res = None
-
-        time.sleep(1)
-        retries -= 1
 
     raise_request_error(res, message)
 
